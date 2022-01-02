@@ -56,6 +56,7 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t ON;
 
 /* USER CODE END 0 */
 
@@ -99,11 +100,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_GPIO_TogglePin (GPIOA, GPIO_PIN_5);
-	  HAL_Delay (1000);   /* Insert delay 1000 ms */
+	// Initial state ON = 0
+	if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET){
+	  while (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET){}
+	    ON = !ON;  // ON = 0 -> 1 -> 0 -> 1 -> ...
+	  }
+	if (ON == 1){
+	  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+	  }
+	else if (ON == 0){
+	  HAL_GPIO_WritePin (GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+	  }
+	}
   }
   /* USER CODE END 3 */
-}
 
 /**
   * @brief System Clock Configuration
