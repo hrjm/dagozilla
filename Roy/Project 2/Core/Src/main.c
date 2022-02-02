@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -44,8 +45,24 @@ TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 
+/* Definitions for blink01 */
+osThreadId_t blink01Handle;
+const osThreadAttr_t blink01_attributes = {
+  .name = "blink01",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for blink02 */
+osThreadId_t blink02Handle;
+const osThreadAttr_t blink02_attributes = {
+  .name = "blink02",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
 /* USER CODE BEGIN PV */
-
+int scale = 0;
+uint8_t on[10] = "3.3 V\r\n";
+uint8_t off[10] = "0 V\r\n";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -53,6 +70,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
+void StartBlink01(void *argument);
+void StartBlink02(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -96,26 +116,50 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of blink01 */
+  blink01Handle = osThreadNew(StartBlink01, NULL, &blink01_attributes);
+
+  /* creation of blink02 */
+  blink02Handle = osThreadNew(StartBlink02, NULL, &blink02_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-	int scale = 0;
-	uint8_t data[30] = "TEST\n\r";
-	while(scale < 625)
-	{
-	  scale += 1;
-	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1, scale);
-	  HAL_Delay(2);
-	}
-	while(scale > 0)
-	{
-	  scale -= 1;
-	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1, scale);
-	  HAL_Delay(2);
-	}
-	HAL_UART_Transmit(&huart2, data, sizeof(data), 100);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -294,6 +338,78 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartBlink01 */
+/**
+  * @brief  Function implementing the blink01 thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartBlink01 */
+void StartBlink01(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    /* USER CODE END WHILE */
+	while(scale < 625)
+	{
+	  scale += 1;
+	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1, scale);
+	  HAL_Delay(1);
+	}
+	HAL_UART_Transmit(&huart2, on, 10, 10);
+    osDelay(1300);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartBlink02 */
+/**
+* @brief Function implementing the blink02 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBlink02 */
+void StartBlink02(void *argument)
+{
+  /* USER CODE BEGIN StartBlink02 */
+  /* Infinite loop */
+  for(;;)
+  {
+	while(scale > 0)
+	{
+	  scale -= 1;
+	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1, scale);
+	  HAL_Delay(1);
+	}
+	HAL_UART_Transmit(&huart2, off, 10, 10);
+	osDelay(1300);
+  }
+  /* USER CODE END StartBlink02 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
